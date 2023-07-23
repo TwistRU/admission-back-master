@@ -107,8 +107,8 @@ class MainPageCalculations:
                 ],
                 'range': '2021-2023',
                 'total': 0 + self.applications_total_data['applicants_total'],
-                'today_online': self.applications_total_data['applicants_today_online'],
-                'today_offline': self.applications_total_data['applicants_today_offline'],
+                'total_superservice': self.applications_total_data['applicants_total_superservice'],
+                'total_web': self.applications_total_data['applicants_total_web'],
             },
             'average': {
                 'data': [
@@ -224,9 +224,9 @@ class MainPageCalculations:
 
     async def _get_applicants(self):
         return {
-            'total': self.applications_total_data['applicants_total'],
-            'today_online': self.applications_total_data['applicants_today_online'],
-            'today_offline': self.applications_total_data['applicants_today_offline'],
+            'total': 0 + self.applications_total_data['applicants_total'],
+            'total_superservice': self.applications_total_data['applicants_total_superservice'],
+            'total_web': self.applications_total_data['applicants_total_web'],
         }
 
     async def _get_applicants_by_day(self):
@@ -270,10 +270,7 @@ class MainPageCalculations:
         applications_info_total = {
             fs: {dd: {k: 0 for k in self.QUOTAS.values()} for dd in self.DOCUMENTDELIVERY.values()} for fs in
             self.FINANCING.values()}
-        aplicants_info_today = {fs: {dd: {k: 0 for k in self.QUOTAS.values()} for dd in self.DOCUMENTDELIVERY.values()}
-                                for fs in self.FINANCING.values()}
-        aplicants_info_total = {fs: {dd: {k: 0 for k in self.QUOTAS.values()} for dd in self.DOCUMENTDELIVERY.values()}
-                                for fs in self.FINANCING.values()}
+        applicants_info_total = {dd: set() for dd in self.DOCUMENTDELIVERY.values()}
         applications_by_day = dict()
         applications_web_by_day = dict()
         applicants_superservice_by_day = dict()
@@ -284,11 +281,6 @@ class MainPageCalculations:
         agreements_by_day = dict()
         agreements_total = set()
         agreements_today = set()
-
-        applicants_today_online = set()
-        applicants_today_offline = set()
-        applicants_total_online = set()
-        applicants_total_offline = set()
 
         today_local = await get_local_datetime()
         for _, human_item in self.dump['data'].items():
@@ -304,24 +296,17 @@ class MainPageCalculations:
 
                 if item_date_download.strftime('%Y-%m-%d') == today_local.strftime('%Y-%m-%d'):
                     applications_info_today[financing_source][document_delivery][quota] += 1
-                    if document_delivery == self.WEB:
-                        applicants_today_offline.add(human)
-                    elif document_delivery == self.SUPERSERVICE:
-                        applicants_today_online.add(human)
                     # TODO Переписать под оригиналы
                     if app_item['AtestOrig']:
                         agreements_today.add(human)
 
                 applications_info_total[financing_source][document_delivery][quota] += 1
+                applicants_info_total[document_delivery].add(human)
                 if document_delivery == self.WEB:
-                    applicants_total_offline.add(human)
                     if item_date_local in applications_web_by_day:
                         applications_web_by_day[item_date_local] += 1
                     else:
                         applications_web_by_day[item_date_local] = 1
-
-                elif document_delivery == self.SUPERSERVICE:
-                    applicants_total_online.add(human)
                 if app_item['AtestOrig']:
                     # TODO Согласие заменить на оригиналы
                     agreements_total.add(human)
@@ -344,12 +329,7 @@ class MainPageCalculations:
                             item_date_local, 0) + 1
                     applicants_used.add(human)
 
-        applications_today = 0  # {k: sum(v.values()) for k, v in applications_info_today.items()}
-        applications_total = 0  # {k: sum(v.values()) for k, v in applications_info_total.items()}
-
-        applicants_today = applicants_today_offline | applicants_today_online
-        applicants_total = applicants_total_offline | applicants_total_online
-
+        applicants_total = sum(map(len, applicants_info_total.values()))
         applicants_by_day = applicants_web_by_day.copy()
         for date, value in applicants_superservice_by_day.items():
             applicants_by_day[date] = applicants_by_day.get(date, 0) + value
@@ -363,12 +343,9 @@ class MainPageCalculations:
             'agreements_by_day': agreements_by_day,
             'applications_by_day': applications_by_day,
             'applications_offline_by_day': applications_web_by_day,
-            'applicants_today': len(applicants_today),
-            'applicants_today_online': len(applicants_today_online),
-            'applicants_today_offline': len(applicants_today_offline),
-            'applicants_total': len(applicants_total),
-            'applicants_total_online': len(applicants_total_online),
-            'applicants_total_offline': len(applicants_total_offline),
+            'applicants_total': applicants_total,
+            'applicants_total_superservice': len(applicants_info_total['SuperService']),
+            'applicants_total_web': len(applicants_info_total['Web']),
             'applicants_online_by_day': applicants_superservice_by_day,
             'applicants_offline_by_day': applicants_web_by_day,
             'applicants_by_day': applicants_by_day,

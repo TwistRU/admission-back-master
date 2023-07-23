@@ -8,6 +8,7 @@ services:
       - "${BACKEND_PORT:-8005}:8000"
     environment:
       PORT: 8000
+      PYTHONUNBUFFERED: 'True'
     volumes:
       - "${DATA_PATH}:/app/data"
     restart: unless-stopped
