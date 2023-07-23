@@ -1,0 +1,13 @@
+version: "3.7"
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT:-8005}:8000"
+    environment:
+      PORT: 8000
+    volumes:
+      - "${DATA_PATH}:/app/data"
+    restart: unless-stopped
